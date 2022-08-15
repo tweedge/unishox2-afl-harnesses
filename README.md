@@ -1,6 +1,6 @@
 # unishox2-afl-harnesses
 
-**WARNING: This README is a late-night, quick document (mostly for my future self), and may not adhere to fuzzing/AFL++ best practices.**
+**WARNING: This README is a late-night slapped-together document, and may not adhere to fuzzing/AFL++ best practices. This is tested and working on Ubuntu 22.04 on aarch64, and the same commands (particularly, the instrumentation chosen) could/should be changed on other platforms.**
 
 These are a few quick harnesses for testing [Unishox2](https://github.com/siara-cc/Unishox2) (a Unicode encoder which is *great* at compressing short strings), minimally modified from [moneromooo-monero's comment in Unishox2 issue #47](https://github.com/siara-cc/Unishox2/issues/47), but coupled with a bunch of documentation as I relearn some fuzzing skills.
 
@@ -22,15 +22,30 @@ AFL++ can instrument on-the-fly (via QEMU) or during compile-time to help, but s
 afl-gcc-fast -o harness-unishox2-decompress-simple harness-unishox2-decompress-simple.c unishox2.c
 ```
 
+This uses AFL's GCC plugin ([documentation](https://github.com/AFLplusplus/AFLplusplus/blob/stable/instrumentation/README.gcc_plugin.md)) and was chosen for simplicity. AFL's clang-based instrumentation is generally recommended where available.
+
 ### Fuzzing
+
+The seed we'll start fuzzing with is a series of spaces, and we'll let AFL++ do the heavy lifting of generating random inputs and finding edge cases through millions of tests.
 
 ```
 mkdir -p fuzz-input && echo '       ' > fuzz-input/SEED
 ```
 
+In future fuzzing campaigns, it would be sensible to have more test cases, including both valid examples and cases that Unishox2 had potentially failed to compress/decompress previously.
+
+Now, we'll start a *very barebones* fuzzing campaign with one of the harnesses. This is single-threaded, and a new AFL++ thread needs to be started for each harness we want to test.
+
 ```
 afl-fuzz -i fuzz-input -o fuzz-decompress-simple ./harness-unishox2-decompress-simple @@
 ```
+
+If AFL++ throws any runtime errors (ex. about CPU performance or crash handling), those can either be resolved, or the given flag can be prepended to the `afl-fuzz` command to ignore that error.
+
+Rapid improvements can/should be made to improve effectiveness:
+
+* AFL++ can be [parallelized](https://aflplus.plus/docs/parallel_fuzzing/) for more coverage.
+* AFL++ should use an available [dictionary](https://github.com/AFLplusplus/AFLplusplus/blob/stable/dictionaries/README.md) to use available grammar (ex. in UTF-8) without needing to discover it.
 
 ### Results
 
