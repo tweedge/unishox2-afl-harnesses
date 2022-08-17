@@ -1,10 +1,19 @@
 # unishox2-afl-harnesses
 
-**WARNING: This README is a late-night slapped-together document, and may not adhere to fuzzing/AFL++ best practices. This is tested and working on Ubuntu 22.04 on aarch64, and the same commands (particularly, the instrumentation chosen) could/should be changed on other platforms.**
+These are a few quick harnesses for testing [Unishox2](https://github.com/siara-cc/Unishox2) (a Unicode encoder which is *great* at compressing short strings), minimally modified from [moneromooo-monero's comment in Unishox2 issue #47](https://github.com/siara-cc/Unishox2/issues/47).
 
-These are a few quick harnesses for testing [Unishox2](https://github.com/siara-cc/Unishox2) (a Unicode encoder which is *great* at compressing short strings), minimally modified from [moneromooo-monero's comment in Unishox2 issue #47](https://github.com/siara-cc/Unishox2/issues/47), but coupled with a bunch of documentation as I relearn some fuzzing skills.
+**WARNING:** This README is intentionally specific to using AFL++ with Unishox2, a concise but narrow example of how to use AFL++. It is not intended as a general guide and may not adhere to fuzzing/AFL++ best practices. This is tested and working on Ubuntu 22.04 on aarch64, and the same commands (particularly, the instrumentation chosen) could/should be changed on other platforms.
 
-Unishox2 has been found to crash if an untrusted input to its `unishox2_decompress` function, such as `NULL`. This would create an availability vulnerability in applications where the input to `unishox2_decompress` cannot be trusted. So, let's hammer Unishox2 and find out where its weak points are using [AFL++](https://github.com/AFLplusplus/AFLplusplus).
+### Background
+
+**Problem:** Unishox2 has been found to crash if an untrusted input to its `unishox2_decompress` function, such as `NULL`. This would create an availability vulnerability in applications where the input to `unishox2_decompress` cannot be trusted.
+
+**Solution:** So, let's hammer Unishox2 and find out where its weak points are using [AFL++](https://github.com/AFLplusplus/AFLplusplus). For those unfamiliar with fuzzing or AFL++, here is some suggested reading material, in order:
+
+* [OWASP's "what is fuzzing" page](https://owasp.org/www-community/Fuzzing)
+* [AFL's homepage and "sales pitch"](https://lcamtuf.coredump.cx/afl/) (precursor to AFL++)
+* [AFL++'s README and graphical guide](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/README.md)
+* [Michael Macnair's "fuzzing with AFL" workshop](https://github.com/mykter/afl-training)
 
 ### Setup
 
@@ -49,3 +58,9 @@ Rapid improvements can/should be made to improve effectiveness:
 
 ### Results
 
+Running AFL++ against Unishox2 at commit [44780fac6e](https://github.com/siara-cc/Unishox2/tree/44780fac6e93e543a88e56d4d958bfee9c21b707) netted the following results within minutes:
+
+* `unishox2_compress_simple`: 0 distinct crashes, 5 distinct hangs
+* `unishox2_decompress_simple`: 39 distinct crashes, 0 distinct hangs
+
+Unishox2 is a small program, and coverage improvements leveled off rapidly. Unishox2 could be a fantastic candidate for fuzzing in CI.
